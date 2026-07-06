@@ -85,3 +85,13 @@ O sistema continua filtrando os pacientes, chamadas e histórico por `unidade_id
 8. Concluir Raio-X e confirmar que não fala nesse momento.
 9. Chamar retorno no consultório e confirmar TV/voz.
 10. Gerar relatório e validar os números por consultório.
+
+
+## Ajuste complementar — botão de voz da TV
+
+Foi ajustado o botão de ativação/teste de voz da TV Sala de Espera para ficar sempre visível na própria tela da TV.
+
+- Antes: o botão podia sumir quando o navegador já tinha `localStorage` marcado como som ativado.
+- Agora: o botão aparece como **Ativar som das chamadas** ou **Som ativo — testar voz**.
+- O botão fica no canto superior direito da TV, abaixo do relógio.
+- Cada clique executa uma fala de teste, liberando a política de áudio do Chrome/Edge.
