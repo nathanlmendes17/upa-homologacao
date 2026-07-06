@@ -765,8 +765,8 @@ body{
       <div id="tv-dest" style="display:inline-flex;align-items:center;background:var(--text-1);color:#fff;border-radius:12px;padding:14px 36px;font-family:'Montserrat';font-weight:800;font-size:26px;letter-spacing:.06em;margin-top:32px;text-transform:uppercase">Aguarde</div>
     </div>
 
-    <div id="tv-audio-banner" onclick="ativarSomTV()" style="position:fixed;top:92px;right:24px;z-index:9999;background:rgba(4,57,92,0.92);color:#fff;padding:14px 22px;border-radius:14px;font-family:'Montserrat';font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px">
-      🔊 Ativar som das chamadas
+    <div id="tv-audio-banner" onclick="ativarSomTV()" title="Ativar/testar voz das chamadas" aria-label="Ativar/testar voz das chamadas" style="position:fixed;top:132px;right:34px;z-index:9999;background:rgba(4,57,92,0.92);color:#fff;width:54px;height:54px;padding:0;border-radius:50%;font-family:'Montserrat';font-weight:700;font-size:24px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;line-height:1">
+      🔊
     </div>
 
     <!-- RODAPÉ: banner fixo de orientação de saúde (sem carrossel e sem Manchester) -->
@@ -1784,7 +1784,8 @@ function switchTab(tab, el){
     const audioBanner = document.getElementById('tv-audio-banner');
     if(audioBanner){
       audioBanner.style.display = 'flex';
-      audioBanner.textContent = tvSomAtivado ? '🔊 Som ativo — testar voz' : '🔊 Ativar som das chamadas';
+      audioBanner.textContent = '🔊';
+      audioBanner.title = tvSomAtivado ? 'Som ativo — clique para testar voz' : 'Ativar som das chamadas';
     }
     if(navEl) navEl.style.display = 'none';
     if(noticeEl) noticeEl.style.display = 'none';
@@ -2517,7 +2518,8 @@ function ativarSomTV(){
   const b = document.getElementById('tv-audio-banner');
   if(b){
     b.style.display = 'flex';
-    b.textContent = '🔊 Som ativo — testar voz';
+    b.textContent = '🔊';
+    b.title = 'Som ativo — clique para testar voz';
   }
   showToast('🔊 Som das chamadas ativado');
 }
