@@ -1834,14 +1834,25 @@ function enfileirarAnuncio(dadosChamada){
   processarFila();
 }
 
-function processarFila(){
+async function processarFila(){
   if(anunciando || !anuncioFila.length) return;
+
   anunciando = true;
-  const d = anuncioFila.shift();
-  showTV(d);
-  // duração estimada: beep(500ms) + fala(~65ms por char)
-  const duracao = 600 + (d.nome.length + 40) * 68;
-  setTimeout(()=>{ anunciando = false; processarFila(); }, duracao);
+
+  while(anuncioFila.length){
+    const d = anuncioFila.shift();
+
+    // Mostra e fala uma chamada por vez.
+    // A próxima chamada só inicia depois que a fala terminar + pausa de segurança.
+    await showTV(d, true);
+    await esperar(1500);
+  }
+
+  anunciando = false;
+}
+
+function esperar(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ── RECHAMAR (só grava um novo evento — a voz dispara via Realtime na TV) ──
@@ -1955,7 +1966,8 @@ function showTV(d, tocarVoz = true){
   if(nome) nome.textContent = d.nome;
   if(dest){ dest.textContent = d.dest; dest.style.background = cor; }
   // som + voz
-  if(tocarVoz) falarChamada(d);
+  if(tocarVoz) return falarChamada(d);
+  return Promise.resolve();
 }
 
 // ── ENÃO URGENTENLABS — configuração salva para produção ──
@@ -2024,48 +2036,75 @@ function popularVozes(){
 }
 
 function falarChamada(d){
-  if(!tvSomAtivado) return;
-
-  const destino = (d.dest || '').toUpperCase();
-  let texto = '';
-  if(destino === 'TRIAGEM'){
-    texto = `${d.nome}, por favor, dirija-se à triagem.`;
-  } else if(destino === 'RAIO-X' || destino === 'RAIO X'){
-    texto = `${d.nome}, por favor, dirija-se à sala de raio X.`;
-  } else if(destino.includes('CONSULTÓRIO')){
-    const destinoFalado = destino.toLowerCase();
-    texto = `${d.nome}, por favor, dirija-se ao ${destinoFalado}.`;
-  } else {
-    texto = `${d.nome}, por favor, dirija-se a ${destino.toLowerCase()}.`;
-  }
-
-  // Beep antes da voz. Só funciona após o clique de ativação do som.
-  try{
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if(AudioCtx){
-      const ctx = new AudioCtx();
-      if(ctx.state === 'suspended') ctx.resume();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = 880;
-      g.gain.setValueAtTime(.25, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .35);
-      o.start(); o.stop(ctx.currentTime + .35);
+  return new Promise(resolve => {
+    if(!tvSomAtivado){
+      resolve();
+      return;
     }
-  } catch(e){ console.warn('Beep bloqueado:', e); }
 
-  setTimeout(()=>{
-    if(!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(texto);
-    utt.lang = 'pt-BR';
-    utt.rate = parseFloat(vozRate) || 0.95;
-    utt.pitch = parseFloat(vozPitch) || 1.15;
-    utt.volume = parseFloat(vozVol) || 1;
-    if(vozSelecionada) utt.voice = vozSelecionada;
-    window.speechSynthesis.speak(utt);
-  }, 450);
+    const destino = (d.dest || '').toUpperCase();
+    let texto = '';
+    if(destino === 'TRIAGEM'){
+      texto = `${d.nome}, por favor, dirija-se à triagem.`;
+    } else if(destino === 'RAIO-X' || destino === 'RAIO X'){
+      texto = `${d.nome}, por favor, dirija-se à sala de raio X.`;
+    } else if(destino.includes('CONSULTÓRIO')){
+      const destinoFalado = destino.toLowerCase();
+      texto = `${d.nome}, por favor, dirija-se ao ${destinoFalado}.`;
+    } else {
+      texto = `${d.nome}, por favor, dirija-se a ${destino.toLowerCase()}.`;
+    }
+
+    // Beep antes da voz. Só funciona após o clique de ativação do som.
+    try{
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if(AudioCtx){
+        const ctx = new AudioCtx();
+        if(ctx.state === 'suspended') ctx.resume();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(.25, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .35);
+        o.start(); o.stop(ctx.currentTime + .35);
+      }
+    } catch(e){ console.warn('Beep bloqueado:', e); }
+
+    setTimeout(()=>{
+      if(!window.speechSynthesis){
+        resolve();
+        return;
+      }
+
+      // Cancela somente algum resíduo anterior antes de iniciar a fala atual.
+      // A fila garante que não haverá uma chamada nova por cima dessa.
+      window.speechSynthesis.cancel();
+
+      const utt = new SpeechSynthesisUtterance(texto);
+      utt.lang = 'pt-BR';
+      utt.rate = parseFloat(vozRate) || 0.95;
+      utt.pitch = parseFloat(vozPitch) || 1.15;
+      utt.volume = parseFloat(vozVol) || 1;
+      if(vozSelecionada) utt.voice = vozSelecionada;
+
+      let finalizado = false;
+      const finalizar = () => {
+        if(finalizado) return;
+        finalizado = true;
+        resolve();
+      };
+
+      utt.onend = finalizar;
+      utt.onerror = finalizar;
+
+      // Fallback: alguns Chrome/Windows não disparam onend com certas vozes.
+      const fallbackMs = Math.max(4500, Math.min(12000, 1200 + texto.length * 95));
+      setTimeout(finalizar, fallbackMs);
+
+      window.speechSynthesis.speak(utt);
+    }, 450);
+  });
 }
 
 if(window.speechSynthesis){

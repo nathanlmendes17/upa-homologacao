@@ -95,3 +95,17 @@ Foi ajustado o botão de ativação/teste de voz da TV Sala de Espera para ficar
 - Agora: o botão aparece como **Ativar som das chamadas** ou **Som ativo — testar voz**.
 - O botão fica no canto superior direito da TV, abaixo do relógio.
 - Cada clique executa uma fala de teste, liberando a política de áudio do Chrome/Edge.
+
+
+## Ajuste extra - Fila de chamadas na TV
+
+Foi aplicado controle de fila para evitar sobreposição de chamadas.
+
+Regra atual:
+
+- Se a TV não estiver falando ninguém, a chamada aparece e fala imediatamente.
+- Se outra chamada chegar durante a fala atual, ela entra na fila.
+- A próxima chamada só aparece/fala depois que a fala anterior terminar.
+- Existe uma pausa de segurança de aproximadamente 1,5 segundo entre uma chamada e outra.
+
+Isso evita conflito quando Triagem, Consultório 1, Consultório 2, Consultório 3, Consultório 4 ou Raio-X chamarem pacientes quase ao mesmo tempo.
